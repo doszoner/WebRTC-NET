@@ -215,35 +215,54 @@ struct libwebrtc_context* libwebrtc_create_context( lwrtc_callback_function call
 		libwebrtc.on_channel_accept = function(event){
 			Module.out("accept");
 			var stack = stackSave();
-			// channel accepted //
-			const array = intArrayFromString(this.label);
-			const buffer = stackAlloc(array.length);
-			Module.HEAPU8.set(array, buffer);
-			libwebrtc.on_event(ctx, this.parent.id, this._id, 5, this.user_data, buffer, this.label.length);
-			stackRestore(stack);
+			try {
+				// channel accepted //
+				const array = intArrayFromString(this.label);
+				if (array.length > 256) {
+					this.close();
+					return;
+				}
+				const buffer = stackAlloc(array.length);
+				Module.HEAPU8.set(array, buffer);
+				libwebrtc.on_event(ctx, this.parent.id, this._id, 5, this.user_data, buffer, this.label.length);
+			} finally {
+				stackRestore(stack);
+			}
 		};
 		libwebrtc.on_channel_connected = function(event){
 			Module.out("connect");
 			var stack = stackSave();
-			// channel connected //
-			const array = intArrayFromString(this.label);
-			const buffer = stackAlloc(array.length);
-			Module.HEAPU8.set(array, buffer);
-			libwebrtc.on_event(ctx, this.parent.id, this._id, 6, this.user_data, buffer, this.label.length);
-			stackRestore(stack);
+			try {
+				// channel connected //
+				const array = intArrayFromString(this.label);
+				if (array.length > 256) {
+					this.close();
+					return;
+				}
+				const buffer = stackAlloc(array.length);
+				Module.HEAPU8.set(array, buffer);
+				libwebrtc.on_event(ctx, this.parent.id, this._id, 6, this.user_data, buffer, this.label.length);
+			} finally {
+				stackRestore(stack);
+			}
 		};
 		libwebrtc.on_channel_message = function(event){
-			var stack = stackSave();
 			var len = event.data.byteLength;
-			var ptr = stackAlloc(len);
+			var ptr = _malloc(len);
+			if (!ptr) {
+				return;
+			}
 
 //            Module.out("Data: " + len );
-			var data = new Uint8Array( event.data );
-			Module.HEAPU8.set(data, ptr);
+			try {
+				var data = new Uint8Array( event.data );
+				Module.HEAPU8.set(data, ptr);
 
-			// channel data //
-			libwebrtc.on_event( ctx, this.parent.id, this._id, 7, this.user_data, ptr, len);
-			stackRestore(stack);
+				// channel data //
+				libwebrtc.on_event( ctx, this.parent.id, this._id, 7, this.user_data, ptr, len);
+			} finally {
+				_free(ptr);
+			}
 		};
 		libwebrtc.on_channel_error = function(event){
 			Module.out("Got channel error: " + event);

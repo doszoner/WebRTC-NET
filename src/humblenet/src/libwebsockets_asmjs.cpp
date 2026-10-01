@@ -81,17 +81,22 @@ struct lws_context* lws_create_context_extended( struct lws_context_creation_inf
 			stackRestore(stack);
 		};
 		libwebsocket.on_message = function(event) {
-			var stack = stackSave();
 			var len = event.data.byteLength;
-			var data = new Uint8Array( event.data );
-			const ptr = stackAlloc(data.length);
-			Module.HEAPU8.set(data, ptr);
-
-			// client receive //
-			if( libwebsocket.on_event( this.protocol_id, ctx, this.id, 6, this.user_data, ptr, len ) ) {
-				this.close();
+			var ptr = _malloc(len);
+			if (!ptr) {
+				return;
 			}
-			stackRestore(stack);
+			try {
+				var data = new Uint8Array( event.data );
+				Module.HEAPU8.set(data, ptr);
+
+				// client receive //
+				if( libwebsocket.on_event( this.protocol_id, ctx, this.id, 6, this.user_data, ptr, len ) ) {
+					this.close();
+				}
+			} finally {
+				_free(ptr);
+			}
 		};
 		libwebsocket.on_close = function() {
 			// closed //
