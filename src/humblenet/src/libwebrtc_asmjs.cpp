@@ -80,7 +80,7 @@ struct libwebrtc_context* libwebrtc_create_context( lwrtc_callback_function call
 			if (window.netConfig && window.netConfig.debug) {
 				console.log("[DEBUG] created channel", name, "ordered", ordered);
 			}
-			var channel = connection.createDataChannel( name, { ordered: ordered, maxRetransmits: ordered ? null : 0 } );
+			var channel = connection.createDataChannel( name, ordered ? { ordered: true } : { ordered: false, maxRetransmits: 0 } );
 			channel.parent = connection;
 			// use the parents data initially
 			channel.user_data = connection.user_data;
